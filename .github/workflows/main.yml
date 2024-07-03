@@ -1,4 +1,4 @@
-name: Deploy Bicep to Azure
+name: Deploy Azure Function
 
 on:
   push:
@@ -10,16 +10,38 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-      - name: Set up Azure CLI
-        uses: azure/cli@v1
-        with:
-          inlineScript: |
-            az login --service-principal --username ${{ secrets.AZURE_CLIENT_ID }} --password ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
-            az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+    - name: Set up Azure CLI
+      uses: azure/cli@v1
 
-      - name: Deploy Bicep
-        run: |
-          az deployment group create --resource-group myResourceGroup --template-file main.bicep
+    - name: Login to Azure
+      env:
+        AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+        AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+        AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      run: az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --tenant $AZURE_TENANT_ID
+
+    - name: Deploy Bicep
+      run: |
+        az deployment group create \
+          --resource-group myResourceGroup \
+          --template-file azure-function.bicep \
+          --parameters region=${{ secrets.REGION }} \
+                       businessUnit=${{ secrets.BUSINESS_UNIT }} \
+                       deploymentStage=${{ secrets.DEPLOYMENT_STAGE }} \
+                       productName=${{ secrets.PRODUCT_NAME }} \
+                       tags=${{ secrets.TAGS }} \
+                       applicationName=${{ secrets.APPLICATION_NAME }} \
+                       applicationId=${{ secrets.APPLICATION_ID }} \
+                       funcApiInsightWorkspaceId=${{ secrets.FUNC_API_INSIGHT_WORKSPACE_ID }} \
+                       role=${{ secrets.ROLE }} \
+                       subnetIds=${{ secrets.SUBNET_IDS }} \
+                       planKind=${{ secrets.PLAN_KIND }} \
+                       planSkuName=${{ secrets.PLAN_SKU_NAME }} \
+                       planSkuTier=${{ secrets.PLAN_SKU_TIER }} \
+                       funcApiAppStName=${{ secrets.FUNC_API_APP_ST_NAME }} \
+                       funcApiAppStVirtualNetwork=${{ secrets.FUNC_API_APP_ST_VIRTUAL_NETWORK }} \
+                       funcVnet=${{ secrets.FUNC_VNET }} \
+                       funcApiAppiDefinitionResourceName=${{ secrets.FUNC_API_APP_I_DEFINITION_RESOURCE_NAME }}
